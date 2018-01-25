@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Information Visualization #1</title>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="ionicons/css/ionicons.css">
+
+    <script src="js/d3.js" charset="javascript"></script>
+    <script src="js/hammer.js" charset="javascript"></script>
+    <script src="js/jquery-3.3.1.js" charset="javascript"></script>
+    <script src="js/particles.js" charset="javascript"></script>
+
+    <script>
+
+      d3.csv("data/responses.csv", function(data){
+
+        console.log(data);
+
+        var people = [];
+
+        for(var i=0; i<data.length;i++) {
+
+          var skills = [];
+          Object.keys(data[i]).forEach(function(key) {
+            if(key.indexOf("How would you rate your") !== -1) {
+              skills.push(parseInt(data[i][key]));
+            }
+          });
+
+          var maxValues = max(skills); // 0-11, 4,5,11 = 10
+
+          if(maxValues.length == 1) {
+
+            var emptyArr = [];
+            var tempSkills = skills.concat(emptyArr);
+            var maxValueIndex = maxValues[0];
+            var maxValue = skills[maxValueIndex];
+            tempSkills[maxValueIndex] = 0;
+            var secondMaxValues = max(tempSkills);
+            var secondMaxIndex = secondMaxValues[Math.floor(Math.random() * secondMaxValues.length)];
+            var secondValue = skills[secondMaxIndex];
+
+          } else {
+
+            var randomIndex = Math.floor(Math.random() * maxValues.length);
+            var maxValueIndex = maxValues[randomIndex]
+            maxValues.splice(randomIndex,1);
+            var secondMaxIndex = maxValues[Math.floor(Math.random() * maxValues.length)];
+            var maxValue = skills[maxValueIndex];
+            var secondValue = skills[secondMaxIndex];
+
+          }
+
+          var skillsArray = ["InformationVisualization","Statistics","Mathematics","Drawing","ComputerUsage","Programming","ComputerGraphics","HCI","UX","Communication", "Collaboration", "CodeRepository"];
+          var colorArray = [
+            "#C7CEF6 ",
+            "#E6A2C5",
+            "#D8A49B",
+            "#7496D2",
+            "#DAECED",
+            "#C4eFD0",
+            "#FFFFFF",
+            "#E5C4A1",
+            "#1DACE8",
+            "#F7b0AA",
+            "#ffeedd",
+            "#11ddee"
+          ];
+
+          var person = {
+            "topSkill": skillsArray[maxValueIndex],
+            "topSkillIndex": maxValueIndex,
+            "secondSkill": skillsArray[secondMaxIndex],
+            "secondSkillIndex": secondMaxIndex,
+            "skills": skills,
+            "alias": data[i]["Alias"]
+          };
+
+          people.push(person);
+          people.sort(compare);
+
+        }
+
+        var htmlString = "";
+        for(var j = 0; j<people.length;j++) {
+
+          var firstColor = colorArray[people[j].topSkillIndex];
+          var secondColor = colorArray[people[j].secondSkillIndex];
+
+          // htmlString += '<div id="personID'+ j +'" class="personHolder" draggable="true" ondragstart="drag(event)">';
+          // htmlString += '<div class="personInformation">test</div>';
+          htmlString += '<div id="personID'+ j +'" draggable="true" ondragstart="drag(event)" class="person" style="background-color:'+firstColor+';" data-first="'+people[j].topSkillIndex+'" data-second="'+people[j].secondSkillIndex+'" data-alias="'+people[j].alias+'">';
+          htmlString += '<div class="stripesHolder">';
+          htmlString += '<div class="firstColorCircleHolder">';
+
+          for(var k = 0; k<7; k++) {
+            htmlString += '<div class="firstColorCircle" style="background-color:'+firstColor+';"></div>';
+          }
+
+          htmlString += '</div>';
+          htmlString += '<div class="secondColorHolder" style="background-color:'+secondColor+';"></div>';
+
+          var heights = [50, 40, 60, 70, 40, 50];
+
+          for(var l = 0; l<6; l++) {
+            //var randomHeight = Math.floor(Math.random() * 40) + 20;
+            htmlString += '<div class="secondColorTemplate secondColor" style="height:'+ heights[l] +'%; background-color:'+secondColor+';">';
+            htmlString += '<div class="secondColorCircle"></div>';
+            htmlString += '</div>';
+          }
+
+          htmlString += '</div>';
+          htmlString += '</div>';
+          // htmlString += '</div>';
+        }
+
+        $("#peopleHolder").append(htmlString);
+
+        $( ".person" ).mouseover(function() {
+          $(".legendColorExplain").css("opacity", "0.2");
+          var fSkill = $(this).attr("data-first");
+          var sSkill = $(this).attr("data-second");
+          var alias = $(this).attr("data-alias");
+
+          $("#aliasHolder").html(alias);
+
+          $('div[data-id="'+fSkill+'"]').each(function() {
+              $(this).css("opacity","1");
+          });
+
+          $('div[data-id="'+sSkill+'"]').each(function() {
+
+              $(this).css("opacity","1");
+          });
+
+        });
+
+        $( ".person" ).mouseout(function() {
+
+          $("#aliasHolder").html("");
+
+          setTimeout(function(){
+          }, 500);
+          $(".legendColorExplain").css("opacity", "1");
+
+        });
+
+        console.log(people);
+
+        var names = ["Infoviz","Stats","Math","Drawing","Comp. Usage","Prog.","Graphics","HCI","UX","Comm", "Collab", "Code Rep"];
+        var htmlStringLegend = "";
+        for(var m=0;m<12;m++) {
+          htmlStringLegend += '<div class="legendPart">';
+          htmlStringLegend += '<div class="legendColorExplain" style="background-color:'+ colorArray[m]+';" data-id="'+m+'">'+names[m]+'</div>';
+          htmlStringLegend += '</div>';
+        }
+
+        $("#legendHolder").append(htmlStringLegend);
+
+        $(".legendColorExplain").mouseover(function() {
+          $(".person").css("opacity", "0.2");
+          var oneSkill = $(this).attr("data-id");
+
+          $('div[data-first="'+oneSkill+'"]').each(function() {
+              $(this).css("opacity","1");
+          });
+
+          $('div[data-second="'+oneSkill+'"]').each(function() {
+              $(this).css("opacity","1");
+          });
+
+        });
+
+        $(".legendColorExplain").mouseout(function() {
+          setTimeout(function(){
+          }, 500);
+          $(".person").css("opacity", "1");
+        });
+
+        zoomIn(2);
+
+      });
+
+      particlesJS.load('particles-js', 'assets/particles.json', function() {
+        // console.log('callback - particles.js config loaded');
+      });
+
+      function compare(a,b) {
+        if (a.topSkill < b.topSkill)
+          return -1;
+        if (a.topSkill > b.topSkill)
+          return 1;
+        return 0;
+      }
+
+      var color = d3.scaleLinear().domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]).range(["red", "blue", "green", "yellow", "orange", "pink", "purple", "white", "black", "cyan", "magenta", "gray"]);
+
+      function max(arr) {
+        var max = -Infinity;
+        var maxIndices = [];
+        for (var i = 0; i < arr.length; i++) {
+            if (arr[i] === max) {
+              maxIndices.push(i);
+            } else if (arr[i] > max) {
+                maxIndices = [i];
+                max = arr[i];
+            }
+        }
+        return maxIndices;
+     }
+
+     function allowDrop(ev) {
+       ev.preventDefault();
+      }
+
+      function drag(ev) {
+        ev.dataTransfer.setData("text", ev.target.id);
+      }
+
+      function drop(ev) {
+        ev.preventDefault();
+        var data = ev.dataTransfer.getData("text");
+        ev.target.appendChild(document.getElementById(data));
+
+        $(event.srcElement).addClass("removeBorder");
+
+        var parentEl = $(event.srcElement).parent().parent();
+        var parentElID = $(parentEl).attr("id");
+        var systemCore = $(parentEl).find(".solarSystemCore");
+
+        // console.log(systemCore);
+
+        var systemAmountPlanets = parseInt($(parentEl).attr("data-planets"));
+        // console.log(systemAmountPlanets);
+
+        if(systemAmountPlanets >= 7) {
+          $(systemCore).addClass("approvedCore");
+        }
+
+        if(systemAmountPlanets<9) {
+          systemAmountPlanets++;
+          document.getElementById(parentElID).setAttribute('data-planets', systemAmountPlanets);
+          var randomRotation = Math.floor(Math.random() * 360);
+          var htmlRingString = '<div class="solarSystemRing ring'+systemAmountPlanets+'" style="transform:rotate('+randomRotation+'deg);"><div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div></div>';
+          $(parentEl).append(htmlRingString);
+        }
+      }
+
+      function zoomIn(n) {
+
+        $(".galaxy").addClass("hideGalaxy");
+        $("#galaxy"+n).removeClass("hideGalaxy");
+
+        var x = n % 5;
+        var y = (n - x) / 5;
+
+        setTimeout(function(){
+          $("#galaxyZoomOut").addClass("show");
+          $("#galaxyHolder").addClass("galaxyZoomedIn");
+          $("#galaxyHolder").css("left", -x * $( window ).width());
+          $("#galaxyHolder").css("top", -y * $( window ).height());
+        }, 500);
+      }
+
+      function zoomOut() {
+        $("#galaxyZoomOut").removeClass("show");
+        $("#galaxyHolder").removeClass("galaxyZoomedIn");
+        $("#galaxyHolder").css("left", "-200%");
+        $("#galaxyHolder").css("top", "-60%");
+
+        setTimeout(function(){
+          $(".galaxy").removeClass("hideGalaxy");
+        }, 3000);
+
+      }
+
+    </script>
+
+  </head>
+  <body>
+
+    <div id="galaxyOuterHolder">
+      <div id="galaxyZoomOut" class="ion-ios-arrow-back" onclick="zoomOut()">
+        <div id="galaxyZoomOutText">overview</div>
+      </div>
+
+      <div id="galaxyHolder">
+        <div id="galaxy0" class="galaxy" onclick="zoomIn(0)">
+          <div id="system0" class="solarSystem" data-planets="0">
+
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy1" class="galaxy" onclick="zoomIn(1)">
+          <div id="system1" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy2" class="galaxy" onclick="zoomIn(2)">
+          <div id="system2" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy3" class="galaxy" onclick="zoomIn(3)">
+          <div id="system3" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy4" class="galaxy" onclick="zoomIn(4)">
+          <div id="system4" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy5" class="galaxy" onclick="zoomIn(5)">
+          <div id="system5" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy6" class="galaxy" onclick="zoomIn(6)">
+          <div id="system6" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy7" class="galaxy" onclick="zoomIn(7)">
+          <div id="system7" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy8" class="galaxy" onclick="zoomIn(8)">
+          <div id="system8" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+        <div id="galaxy9" class="galaxy" onclick="zoomIn(9)">
+          <div id="system9" class="solarSystem" data-planets="0">
+            <div class="solarSystemCore"></div>
+
+            <div class="solarSystemRing ring0">
+              <div class="solarSystemRingPlanetHolder" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+  </div>
+
+    <!-- <div class="solarSystem" ondrop="drop(event)" ondragover="allowDrop(event)"></div> -->
+
+    <div id="peopleHolder" ondrop="drop(event)" ondragover="allowDrop(event)">
+      <div id="legendHolder"></div>
+      <div id="aliasHolder"></div>
+    </div>
+
+    <div id="informationHolder">
+      <div id="informationHead">The Galaxy</div>
+      <div id="informationBread">
+        Create solar systems with complementing skills
+      </div>
+    </div>
+
+    <div id="instructionsHolder" class="ion-ios-help-outline">
+      <div id="instructionsTextHolder">
+        <div id="instructionsHead">
+          Instructions
+        </div>
+        <div id="instructionsHeadSmall">Groupforming?<br/>Let's planet!</div>
+
+        All the planets at the bottom represent all the people in the class. Every planet has two colors, each representative of their top two skills. If you hover on one of the skills-tags above the planets, you can clearly see which planets has which skills.
+        <br /><br />
+        Now it's time for you to
+        form <br/>groups, or solar systems!
+        <br /><br />
+        Drag and drop a planet into one of the solar systems, and hover on skills to see what the group has and what it's missing. When a group has 8 or more members, it's complete and it's star will light up in green.
+        <br /><br />
+        Try to distribute the planets evenly <br/> into the solar systems!
+
+      </div>
+    </div>
+
+    <div id="particles-js"></div>
+
+  </body>
+</html>
